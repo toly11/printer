@@ -19,16 +19,16 @@ server.get('/ping', (req, res) => {
 })
 
 server.post('/print', (req, res) => {
-    const { _id, title, worker, floor, timestamp } = req.body
-    if (!_id || !title || !worker || !floor || !timestamp)
+    const { id, title, worker, department, timestamp } = req.body
+    if (!id || !title || !worker || !department || !department.DepartmenName || !timestamp)
         return res.status(400).send({ error: 'missing details' })
 
     try {
-        const file = join(tmpdir(), 'print', `${_id}.txt`)
+        const file = join(tmpdir(), 'print', `${id}.txt`)
         const content =
             `${formatTime(timestamp)}\n` +
             `${title}\n` +
-            `עובד: ${worker} קומה ${floor}`
+            `עובד: ${worker} ${department.DepartmenName}`
 
         writeFile(file, content, (err) => {
             if (err) return res.status(500).send({ error: err.message })
