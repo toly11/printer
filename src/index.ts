@@ -1,9 +1,9 @@
-const { execFile } = require('child_process');
-const { writeFile } = require('fs');
-const printer = 'printer.exe';
-const cors = require('cors');
-const Express = require('express');
-const Task = require("./task.class");
+import { execFile } from 'child_process';
+import { writeFile } from 'fs';
+import { join } from 'path';
+import cors from 'cors';
+import Express from "express"
+import { Task } from "./task.class";
 
 const server = Express()
   .use(Express.json())
@@ -16,14 +16,14 @@ server.get('/ping', (req, res) => {
 
 server.post('/print', (req, res) => {
   const task = new Task(req.body);
-  if (!task.valid) return res.status(400).send({ error: 'missing details' });
+  if (!task.isValid) return res.status(400).send({ error: 'missing details' });
 
   try {
-    const file = task.getFileName();
-    writeFile(file, task.buildContent(), (err) => {
+    writeFile(task.fileName, task.content, (err) => {
       if (err) return res.status(500).send({ error: err.message });
 
-      execFile(printer, [file]);
+      const printer = join(__dirname, "../lib", 'printer.exe')
+      execFile(printer, [task.fileName]);
       return res.send({ ok: true });
     });
   } catch (err) {
