@@ -1,49 +1,34 @@
 const { execFile } = require('child_process');
-const { join } = require('path');
-const { tmpdir } = require('os');
 const { writeFile } = require('fs');
 const printer = 'printer.exe';
-
 const cors = require('cors');
 const Express = require('express');
+const Task = require("./task.class");
+
 const server = Express()
-    .use(Express.json())
-    .use(cors())
-    .use((req, res, next) => {
-        console.log(req.method, req.url);
-        next();
-    });
+  .use(Express.json())
+  .use(cors())
+  .use((req, res, next) => { console.log(req.method, req.url); next(); });
 
 server.get('/ping', (req, res) => {
-    res.send({ ok: true });
+  res.send({ ok: true });
 });
 
 server.post('/print', (req, res) => {
-    const { id, title, worker, department, timestamp } = req.body;
-    if (!id || !title || !worker || !department || !department.DepartmenName || !timestamp)
-        return res.status(400).send({ error: 'missing details' });
+  const task = new Task(req.body);
+  if (!task.valid) return res.status(400).send({ error: 'missing details' });
 
-    try {
-        const file = join(tmpdir(), 'print', `${id}.txt`);
-        const content =
-            `${formatTime(timestamp)}\n` +
-            `${title}\n` +
-            `עובד: ${worker} ${department.DepartmenName}`;
+  try {
+    const file = task.getFileName();
+    writeFile(file, task.buildContent(), (err) => {
+      if (err) return res.status(500).send({ error: err.message });
 
-        writeFile(file, content, (err) => {
-            if (err) return res.status(500).send({ error: err.message });
-            execFile(printer, [file]);
-        });
-    } catch (err) {
-        if (err) return res.status(500)
-            .send({ error: err.message || 'error while trying to process the print request' });
-    }
-    res.send({ ok: true });
+      execFile(printer, [file]);
+      return res.send({ ok: true });
+    });
+  } catch (err) {
+    return res.status(500).send({ error: err.message || 'error while trying to process the print request' });
+  }
 });
 
 server.listen(8215, () => console.log('listening on port 8215...'));
-
-function formatTime(timestamp) {
-    const t = new Date(timestamp);
-    return `${t.getHours()}:${('0' + t.getMinutes()).slice(-2)}`;
-}
